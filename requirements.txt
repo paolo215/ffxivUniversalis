@@ -1,0 +1,7 @@
+urllib3
+mysql==0.0.2
+mysql-connector-python
+mysqlclient==1.4.6
+numpy==1.18.4
+pandas==0.25.3
+requests==2.22.0
