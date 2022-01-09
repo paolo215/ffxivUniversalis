@@ -23,20 +23,27 @@ class Main(object):
                 data = lines[i].split(",");
                 is_untradable = data[22]
                 key = data[0]
-                name = data[1] 
+                name = data[9] 
                 item = {}
                 item["itemId"] = int(key)
                 item["name"] = name
-                
-                if is_untradable == "FALSE" and name != "":
-                    #print(key, name, is_untradable)
-                    self.models.items.add(item)
+                self.models.items.add(item)
 
+
+    def get_marketable(self):
+        url = config.config["universalis"]["base_url"] + "api/marketable"
+        req = requests.get(url)
+        items = req.json()
+        for item in items:
+            data = {}
+            data["itemId"] = item
+            self.models.marketable_items.add(data)
 
 
 def main(argv):
     a = Main()
     a.read_item_csv()
+    a.get_marketable()
 
 if __name__ == "__main__":
     main(sys.argv[1:])
