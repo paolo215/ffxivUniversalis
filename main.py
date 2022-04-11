@@ -65,12 +65,17 @@ class Main(object):
             self.models.marketable_items.add(data)
 
 
+    def get_history_every(self, hours=4):
+        while True:
+            self.get_history()
+            time.sleep(60*hours)
 
     def get_history(self):
         base_url = self.universalis["base_url"] + "api/history/" + self.universalis["world"] + "/"
         marketable = self.models.marketable_items.get_all()
         params = { "entries": 250, "entriesWithin": 60*60*24*7 }
         self.start = now()
+        self.models.market_data.delete_after(10)
         for i in range(0, len(marketable), 50):
             current = now()
             if (current - self.start).total_seconds() > 60:
@@ -111,7 +116,7 @@ class Main(object):
         self.start = now()
 
 
-    def get_most_expensive(self, top=20):
+    def get_most_expensive(self, top=25):
         items =  self.models.market_data.get_all_ids()
         output = [] 
         for item in items:
@@ -129,16 +134,16 @@ class Main(object):
         output = sorted(output, key=lambda x: x[2])[-top:]
             
         for item in output:
-            print("%s (%s): %s" % (item[0], str(item[1]), item[2]))
+            print("%s (%s): %s\t%s" % (item[0], str(item[1]), item[2], self.get_universalis_link(item[1])))
         
 
-    def get_gathering_avg(self, top=10):
+    def get_gathering_avg(self, top=25, day=1):
         items =  self.models.gathering_items.get_all()
         output = [] 
         for item in items:
             item_id = item["itemId"]
             name = self.models.items.get(item_id)["name"]
-            day1 = self.models.market_data.get_all_by_id_within(item_id, 1) 
+            day1 = self.models.market_data.get_all_by_id_within(item_id, day) 
             if not day1: continue
             ppu1 = [f["pricePerUnit"] for f in day1]
             ppu1 = self.remove_outliers(ppu1)
@@ -152,7 +157,7 @@ class Main(object):
             print("%s (%s): %s" % (item[0], str(item[1]), item[2]))
 
 
-    def get_avg_diff(self, low=1, high=7):
+    def get_avg_diff(self, top=25, low=1, high=7):
         #data = self.models.market_data.get_all_by_id(5)
         items = self.models.gathering_items.get_all()
         cheap = []
@@ -184,14 +189,14 @@ class Main(object):
         expensive = list(reversed(sorted(expensive, key=lambda x: x[2])))
         print("\n\n")
         print("Cheap by weighted avg")
-        for i in cheap[:10]:
+        for i in cheap[-top:]:
             ##print(",".join([str(f) for f in i]))
             i = [str(f) for f in i]
             print("%s (%s)" % (i[0], i[1]))
             print("\t avg1: %s   avg7: %s  result: %s " % (i[2], i[3], i[4]))
         print("\n\n")
         print("Expensive by weighted avg")
-        for i in expensive[:10]:
+        for i in expensive[-top:]:
             #print(",".join([str(f) for f in i]))
             print("%s (%s)" % (i[0], i[1]))
             print("\t avg1: %s   avg7: %s  result: %s " % (i[2], i[3], i[4]))
@@ -206,11 +211,8 @@ class Main(object):
         return a
 
 
-    def get_history_repeat(seconds):
-        while True:
-            a.get_history()
-            time.sleep(60*60*2)
-            
+    def get_universalis_link(self, item_id):
+        return self.universalis["base_url"] + "market/" + str(item_id)
     
 def now():
     return datetime.datetime.now()
@@ -224,18 +226,23 @@ def main(argv):
 
     (options, args) = parser.parse_args(argv)
     print(options)
+    print(args)
 
     a = Main()
     if options.marketHistory:
-        a.get_history()
+        a.get_history_every()
+        print("\n\n")
     if options.weightedAvg:
         a.get_avg_diff()
-    if options.gatheringAvg:
-        a.get_gathering_avg(10)
-    if options.mostExpensive:
-        a.get_most_expensive()
+        print("\n\n")
+    elif options.gatheringAvg:
+        a.get_gathering_avg(int(args[0]))
+        print("\n\n")
+    elif options.mostExpensive:
+        a.get_most_expensive(int(args[0]))
+        print("\n\n")
     
-    #a.read_item_csv()
+    #a6read_item_csv()
     #a.get_marketable()
     #a.get_history()
     #a.read_gathering_items()

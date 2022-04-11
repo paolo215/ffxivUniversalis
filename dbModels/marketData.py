@@ -52,6 +52,10 @@ class MarketData(object):
         if output:
             return output
         return None
+
+    def delete_after(self, days=14):
+        self.db.execute("""DELETE FROM marketData WHERE date >= DATE(NOW()) - INTERVAL %s DAY
+        """, [days], True)
     
     def get_all_by_id(self, id):
         output = self.db.execute("""
